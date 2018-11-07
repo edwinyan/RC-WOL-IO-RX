@@ -2,7 +2,7 @@
 #include "bsp.h"
 #include "bsp_os.h"
 #include "led_drv.h"
-#include "tc_common.h"
+//#include "tc_common.h"
 #include "uart_drv.h"
 
 OS_MUTEX	TX_MUTEX;		//uart tx mutex
