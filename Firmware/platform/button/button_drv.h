@@ -18,12 +18,6 @@ typedef enum{
 #define BUTTION_RUN_GPIO	GPIOA
 #define BUTTION_RUN_PIN		GPIO_Pin_8
 
-
-#define PWM_START	1000
-#define PWM_IDLE	1500
-#define	PWM_RUN		1950
-
-
 void button_drv_init(void);
 u8 button_value_get(button_src_enum src);
 

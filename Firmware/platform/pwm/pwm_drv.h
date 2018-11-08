@@ -10,8 +10,13 @@
 #define TIM2_CH2_PIN	GPIO_Pin_3
 #define TIM2_CH2_PINSOURCE	GPIO_PinSource3
 
+#define PWM_START	1000
+#define PWM_IDLE	1500
+#define	PWM_RUN		1950
+
 void TIM4_Cap_Init(u32 arr,u16 psc);
 void TIM2_PWM_Init(u32 arr,u16 psc);
+void pwm_output(void);
 
 
 #endif

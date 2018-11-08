@@ -3,6 +3,7 @@
 #include "pwm_drv.h"
 #include "bsp.h"
 #include "bsp_os.h"
+#include "button_drv.h"
 
 /*----------------------------------------------------------------------------*/
 void TIM2_PWM_Init(u32 arr,u16 psc)
@@ -135,6 +136,21 @@ void TIM4_Cap_Init(u32 arr,u16 psc)
 
 #endif
 
+void pwm_output(void)
+{	
+	if(button_value_get(BUTTON_SRC_START) == 1){
+		TIM_SetCompare2(TIM2,PWM_START);
+		//MSG("set pwm start\r\n");
+	}
+	if(button_value_get(BUTTON_SRC_IDLE) == 1){
+		TIM_SetCompare2(TIM2,PWM_IDLE);
+		//MSG("set pwm idle\r\n");
+	}
+	if(button_value_get(BUTTON_SRC_RUN) == 1){
+		TIM_SetCompare2(TIM2,PWM_RUN);
+		//MSG("set pwm run\r\n");
+	}
+}
 
 
 

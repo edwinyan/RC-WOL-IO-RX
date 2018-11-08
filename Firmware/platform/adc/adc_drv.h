@@ -10,11 +10,12 @@
 
 #define ADC_NUM_CHANNELS	5
 
-#define ADC_CHANNEL_CAMERA	0		//camera adc channel
-#define ADC_CHANNEL_JS_R1	1		//joystick right channel1
-#define	ADC_CHANNEL_JS_R2	2		//joystick right channel2
-#define ADC_CHANNEL_JS_L1	3		//joystick left channel1
-#define	ADC_CHANNEL_JS_L2	4		//joystick left channel2
+#define ADC_CHANNEL_48V		0		
+#define ADC_CHANNEL_5V		1		
+#define	ADC_CHANNEL_22V		2		
+#define ADC_CHANNEL_12V		3		
+#define	ADC_CHANNEL_17V		4
+
 
 #define POWER_COMPENSATE		0.5f
 #define POWER_COMPENSATE_5V		0.2f
