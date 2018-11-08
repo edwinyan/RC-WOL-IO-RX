@@ -23,6 +23,9 @@
 #include "adc_drv.h"
 #include "pwm_drv.h"
 #include "gpio_drv.h"
+#include "wt588d_drv.h"
+#include "mc8618_drv.h"
+
 /*----------------------------------------------------------------------------*/
 //macros
 #define  BSP_BIT_RCC_PLLCFGR_PLLM               8u
@@ -125,12 +128,11 @@ void BSP_Peripheral_Init(void)
     led_drv_init();
     uart_drv_init();
 	button_drv_init();
-	buzzer_drv_init();
+	mc8618_init();
 	Adc_Init();
-	gpio_drv_init(); //config gpio for output
-	TIM3_PWM_Init(4095,7);  //TIM3 for adc2,3,4,5
-	TIM5_PWM_Init(4095,7); //pwm frequency=1M/409 = 2.439KHz
-		
+	TIM2_PWM_Init(20000,84-1);	//Tim4 for pwm ouput f=1M/20000 = 50hz
+	TIM4_Cap_Init(0xFFFF,84-1);//1M 采样计数频率 最大量程 65535us=65.5ms，即pwm周期最小15.26hz
+	wt588d_init();	
 }
 
 /*

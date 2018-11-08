@@ -6,6 +6,8 @@
 #include "uart_drv.h"
 
 extern OS_MUTEX	FIFO_MUTEX;
+extern OS_MUTEX	TX_MUTEX;		//uart tx mutex
+extern OS_MUTEX	RX_MUTEX;		//uart rx mutex
 
 enum{
     UART_PIN_TYPE_TX = 0,
@@ -28,20 +30,39 @@ typedef struct{
 }uart_drv_t;
 
 uart_drv_t uart_drv_array[UART_SRC_NUM] = {
-    //uart1 for debug
+    //uart1 for MC8618 voice
     { 
         "USART1", &SerialDevCfg_STM32_USART1, 
         {SERIAL_BAUDRATE_115200, SERIAL_DATABITS_8, SERIAL_STOPBITS_1, SERIAL_PARITY_NONE, SERIAL_FLOW_CTRL_NONE}, 
         0,{GPIOA, GPIOA},{GPIO_Pin_9,GPIO_Pin_10}, {GPIO_PinSource9, GPIO_PinSource10},GPIO_AF_USART1,DEF_FALSE
     },
+	//uart2 for MC8618 data
+	{ 
+		"USART2", &SerialDevCfg_STM32_USART2, 
+		{SERIAL_BAUDRATE_115200, SERIAL_DATABITS_8, SERIAL_STOPBITS_1, SERIAL_PARITY_NONE, SERIAL_FLOW_CTRL_NONE}, 
+		0,{GPIOA, GPIOA},{GPIO_Pin_2,GPIO_Pin_3}, {GPIO_PinSource2, GPIO_PinSource3},GPIO_AF_USART2,DEF_FALSE
+	},
+	//uart3 for 433/915 module
+	{ 
+		"USART3", &SerialDevCfg_STM32_USART3, 
+		{SERIAL_BAUDRATE_115200, SERIAL_DATABITS_8, SERIAL_STOPBITS_1, SERIAL_PARITY_NONE, SERIAL_FLOW_CTRL_NONE}, 
+		0,{GPIOB, GPIOB},{GPIO_Pin_10,GPIO_Pin_11}, {GPIO_PinSource10, GPIO_PinSource11},GPIO_AF_USART3,DEF_FALSE
+	},
+//	//uart4 for gcs module
+	{ 
+		"USART4", &SerialDevCfg_STM32_USART4, 
+		{SERIAL_BAUDRATE_115200, SERIAL_DATABITS_8, SERIAL_STOPBITS_1, SERIAL_PARITY_NONE, SERIAL_FLOW_CTRL_NONE}, 
+		0,{GPIOC, GPIOC},{GPIO_Pin_10,GPIO_Pin_11}, {GPIO_PinSource10, GPIO_PinSource11},GPIO_AF_UART4,DEF_FALSE
+	},
 
     //endmark
-    { 
-        "", NULL, 
-        {SERIAL_BAUDRATE_115200, SERIAL_DATABITS_8, SERIAL_STOPBITS_1, SERIAL_PARITY_NONE, SERIAL_FLOW_CTRL_NONE}, 
-        0,{GPIOA, GPIOA},{GPIO_Pin_9,GPIO_Pin_10}, {GPIO_PinSource9, GPIO_PinSource10},GPIO_AF_USART1,DEF_FALSE
-    },
+//    { 
+//        "", NULL, 
+//        {SERIAL_BAUDRATE_115200, SERIAL_DATABITS_8, SERIAL_STOPBITS_1, SERIAL_PARITY_NONE, SERIAL_FLOW_CTRL_NONE}, 
+//        0,{GPIOA, GPIOA},{GPIO_Pin_9,GPIO_Pin_10}, {GPIO_PinSource9, GPIO_PinSource10},GPIO_AF_USART1,DEF_FALSE
+//    },
 };
+
 
 
 
@@ -106,35 +127,26 @@ void uart_drv_init(void)
             break;
         }
     }
-#if 0
-    uart_drv = &uart_drv_array[UART_SRC_DBG];
-    ASSERT_R(DEF_TRUE == uart_drv->uart_enabled);
-    
-    Serial_SetLineDrv((SERIAL_IF_NBR        ) uart_drv->uart_if_nbr,
-                      (SERIAL_LINE_DRV_API *)&SerialLine_TTY ,
-                      (SERIAL_ERR          *)&err);
-    
-    Serial_Wr((SERIAL_IF_NBR   )uart_drv->uart_if_nbr,
-              (void           *)"\n\n",
-              (CPU_SIZE_T      )2,
-              (CPU_INT32U      )0,
-              (SERIAL_ERR     *)&err);
-    
-    ASSERT_R(err == SERIAL_ERR_NONE);
-#endif
 }
 
 void uart_drv_dbg_msg(u8 *msg)
 {
     SERIAL_ERR  err;
+	OS_ERR		Err;
+	
     uart_drv_t *uart_drv = &uart_drv_array[UART_SRC_DBG];
     ASSERT_R(DEF_TRUE == uart_drv->uart_enabled);
-    
+	
+    OSMutexPend (&TX_MUTEX,0,OS_OPT_PEND_BLOCKING,0,&Err);
+	
     Serial_Wr((SERIAL_IF_NBR   )uart_drv->uart_if_nbr,
               (void           *)&msg[0],
               (CPU_SIZE_T      )Str_Len((const CPU_CHAR *)msg),
               (CPU_INT32U      )0,
               (SERIAL_ERR     *)&err);
+
+	OSMutexPost(&TX_MUTEX,OS_OPT_POST_NONE,&Err);
+	
     ASSERT_R(err == SERIAL_ERR_NONE);
 }
 
@@ -142,9 +154,13 @@ u32 uart_drv_dbg_recv(u8 *buf, u32 len)
 {
     u32 read_len;
     SERIAL_ERR  err;
+	OS_ERR		Err;
+	
     uart_drv_t *uart_drv = &uart_drv_array[UART_SRC_DBG];
     ASSERT_R(DEF_TRUE == uart_drv->uart_enabled);
-    
+
+	OSMutexPend (&RX_MUTEX,0,OS_OPT_PEND_BLOCKING,0,&Err);
+	
     read_len = Serial_Rd((SERIAL_IF_NBR   )uart_drv->uart_if_nbr,
               (void           *)buf,
               (CPU_SIZE_T      )len,
@@ -156,7 +172,148 @@ u32 uart_drv_dbg_recv(u8 *buf, u32 len)
         MSG_INFO("%s err: status: 0x%x, len: 0x%x\r\n", __FUNCTION__,err,len);
         //ASSERT_R(err == SERIAL_ERR_NONE);
     }
-    
+    OSMutexPost(&RX_MUTEX,OS_OPT_POST_NONE,&Err);
+    return read_len;
+}
+
+void uart_drv_433_send(u8 *msg, u32 len)
+{
+    SERIAL_ERR  err;
+	OS_ERR		Err;
+	
+    uart_drv_t *uart_drv = &uart_drv_array[UART_SRC_433];
+    ASSERT_R(DEF_TRUE == uart_drv->uart_enabled);
+
+	OSMutexPend (&TX_MUTEX,0,OS_OPT_PEND_BLOCKING,0,&Err);
+	
+    Serial_Wr((SERIAL_IF_NBR   )uart_drv->uart_if_nbr,
+              (void           *)&msg[0],
+              (CPU_SIZE_T      )len,
+              (CPU_INT32U      )0,
+              (SERIAL_ERR     *)&err);
+	
+	OSMutexPost(&TX_MUTEX,OS_OPT_POST_NONE,&Err);
+	
+    ASSERT_R(err == SERIAL_ERR_NONE);
+}
+
+u32 uart_drv_433_recv(u8 *buf, u32 len)
+{
+    u32 read_len;
+    SERIAL_ERR  err;
+	OS_ERR		Err;
+	
+    uart_drv_t *uart_drv = &uart_drv_array[UART_SRC_433];
+    ASSERT_R(DEF_TRUE == uart_drv->uart_enabled);
+
+	OSMutexPend (&RX_MUTEX,0,OS_OPT_PEND_BLOCKING,0,&Err);
+	
+    read_len = Serial_Rd((SERIAL_IF_NBR   )uart_drv->uart_if_nbr,
+              (void           *)buf,
+              (CPU_SIZE_T      )len,
+              (CPU_INT32U      )0,
+              (SERIAL_ERR     *)&err);
+   
+    if(err != SERIAL_ERR_NONE)
+    {
+        MSG_INFO("%s err: status: 0x%x, len: 0x%x\r\n", __FUNCTION__,err,len);
+        //ASSERT_R(err == SERIAL_ERR_NONE);
+    }
+    OSMutexPost(&RX_MUTEX,OS_OPT_POST_NONE,&Err);
+    return read_len;
+}
+
+void uart_drv_gcs_send(u8 *msg)
+{
+    SERIAL_ERR  err;
+	OS_ERR		Err;
+	
+    uart_drv_t *uart_drv = &uart_drv_array[UART_SRC_GCS];
+    ASSERT_R(DEF_TRUE == uart_drv->uart_enabled);
+
+	OSMutexPend (&TX_MUTEX,0,OS_OPT_PEND_BLOCKING,0,&Err);
+	
+    Serial_Wr((SERIAL_IF_NBR   )uart_drv->uart_if_nbr,
+              (void           *)&msg[0],
+              (CPU_SIZE_T      )Str_Len((const CPU_CHAR *)msg),
+              (CPU_INT32U      )0,
+              (SERIAL_ERR     *)&err);
+
+	OSMutexPost(&TX_MUTEX,OS_OPT_POST_NONE,&Err);
+	
+    ASSERT_R(err == SERIAL_ERR_NONE);
+}
+
+u32 uart_drv_gcs_recv(u8 *buf, u32 len)
+{
+    u32 read_len;
+    SERIAL_ERR  err;
+	OS_ERR		Err;
+	
+    uart_drv_t *uart_drv = &uart_drv_array[UART_SRC_GCS];
+    ASSERT_R(DEF_TRUE == uart_drv->uart_enabled);
+
+	OSMutexPend (&RX_MUTEX,0,OS_OPT_PEND_BLOCKING,0,&Err);
+	
+    read_len = Serial_Rd((SERIAL_IF_NBR   )uart_drv->uart_if_nbr,
+              (void           *)buf,
+              (CPU_SIZE_T      )len,
+              (CPU_INT32U      )0,
+              (SERIAL_ERR     *)&err);
+   
+    if(err != SERIAL_ERR_NONE)
+    {
+        MSG_INFO("%s err: status: 0x%x, len: 0x%x\r\n", __FUNCTION__,err,len);
+        //ASSERT_R(err == SERIAL_ERR_NONE);
+    }
+    OSMutexPost(&RX_MUTEX,OS_OPT_POST_NONE,&Err);
+    return read_len;
+}
+
+void uart_drv_data_send(u8 *msg)
+{
+    SERIAL_ERR  err;
+	OS_ERR		Err;
+	
+    uart_drv_t *uart_drv = &uart_drv_array[UART_SRC_DATA];
+    ASSERT_R(DEF_TRUE == uart_drv->uart_enabled);
+
+	OSMutexPend (&TX_MUTEX,0,OS_OPT_PEND_BLOCKING,0,&Err);
+	
+    Serial_Wr((SERIAL_IF_NBR   )uart_drv->uart_if_nbr,
+              (void           *)&msg[0],
+              (CPU_SIZE_T      )Str_Len((const CPU_CHAR *)msg),
+              (CPU_INT32U      )0,
+              (SERIAL_ERR     *)&err);
+
+	OSMutexPost(&TX_MUTEX,OS_OPT_POST_NONE,&Err);
+	
+    ASSERT_R(err == SERIAL_ERR_NONE);
+}
+
+u32 uart_drv_data_recv(u8 *buf, u32 len)
+{
+    u32 read_len;
+    SERIAL_ERR  err;
+	OS_ERR		Err;
+	
+    uart_drv_t *uart_drv = &uart_drv_array[UART_SRC_DATA];
+    ASSERT_R(DEF_TRUE == uart_drv->uart_enabled);
+	
+    OSMutexPend (&RX_MUTEX,0,OS_OPT_PEND_BLOCKING,0,&Err);
+	
+    read_len = Serial_Rd((SERIAL_IF_NBR   )uart_drv->uart_if_nbr,
+              (void           *)buf,
+              (CPU_SIZE_T      )len,
+              (CPU_INT32U      )0,
+              (SERIAL_ERR     *)&err);
+   
+    if(err != SERIAL_ERR_NONE)
+    {
+        MSG_INFO("%s err: status: 0x%x, len: 0x%x\r\n", __FUNCTION__,err,len);
+        //ASSERT_R(err == SERIAL_ERR_NONE);
+    }
+    OSMutexPost(&RX_MUTEX,OS_OPT_POST_NONE,&Err);
     return read_len;
 }
 

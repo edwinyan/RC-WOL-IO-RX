@@ -6,8 +6,9 @@
 typedef enum{
     UART_SRC_START = 0,
     UART_SRC_DBG = UART_SRC_START,
-    UART_SRC_GPRS,
-    UART_SRC_MAVLINK,
+    UART_SRC_DATA,
+    UART_SRC_433,
+    UART_SRC_GCS,
 
     UART_SRC_NUM
 }uart_src_enum;
@@ -21,6 +22,11 @@ typedef struct {
 void uart_drv_init(void);
 void uart_drv_dbg_msg(u8 *msg);
 u32 uart_drv_dbg_recv(u8 *buf, u32 len);
+void uart_drv_data_send(u8 *msg);
+u32 uart_drv_data_recv(u8 *buf, u32 len);
+void uart_drv_433_send(u8 *msg, u32 len);
+u32 uart_drv_433_recv(u8 *buf, u32 len);
+
 
 void Fifo_Init(pFIFO_T stFiFo);
 bool Fifo_Write(pFIFO_T stFiFo, u8 dat);

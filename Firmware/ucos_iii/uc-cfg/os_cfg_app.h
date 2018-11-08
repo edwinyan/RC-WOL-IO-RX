@@ -61,7 +61,7 @@
 
 
                                                             /* ------------------------ TICKS ----------------------- */
-#define  OS_CFG_TICK_RATE_HZ            1000u               /* Tick rate in Hertz (10 to 1000 Hz)                     */
+#define  OS_CFG_TICK_RATE_HZ            10000u               /* Tick rate in Hertz (10 to 1000 Hz)                     */
 #define  OS_CFG_TICK_TASK_PRIO             1u               /* Priority                                               */
 #define  OS_CFG_TICK_TASK_STK_SIZE       128u               /* Stack size (number of CPU_STK elements)                */
 #define  OS_CFG_TICK_WHEEL_SIZE           16u               /* Number of 'spokes' in tick wheel                       */

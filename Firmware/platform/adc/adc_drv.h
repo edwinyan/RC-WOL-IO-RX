@@ -1,9 +1,9 @@
 #ifndef _ADC_DRV_H_
 #define _ADC_DRV_H_
 
-#define ADC1_IN0_PIN	GPIO_Pin_0
-#define ADC1_IN6_PIN	GPIO_Pin_6
-#define ADC1_IN7_PIN	GPIO_Pin_7
+#define ADC1_IN10_PIN	GPIO_Pin_0
+#define ADC1_IN11_PIN	GPIO_Pin_1
+#define ADC1_IN12_PIN	GPIO_Pin_2
 
 #define ADC1_IN8_PIN	GPIO_Pin_0
 #define ADC1_IN9_PIN	GPIO_Pin_1
@@ -15,6 +15,10 @@
 #define	ADC_CHANNEL_JS_R2	2		//joystick right channel2
 #define ADC_CHANNEL_JS_L1	3		//joystick left channel1
 #define	ADC_CHANNEL_JS_L2	4		//joystick left channel2
+
+#define POWER_COMPENSATE		0.5f
+#define POWER_COMPENSATE_5V		0.2f
+#define POWER_COMPENSATE_48V	2.0f
 
 void  Adc_Init(void);
 u16 adc_getvalue(u8 num);

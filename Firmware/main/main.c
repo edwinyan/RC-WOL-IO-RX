@@ -10,22 +10,39 @@ OS_MUTEX	RX_MUTEX;		//uart rx mutex
 
 OS_MUTEX	FIFO_MUTEX;
 
-//static FIFO_T stFiFo;
+FIFO_T stFiFo;
 
 /*----------------------------------------------------------------------------*/
 //macro and variables
 #define  APP_CFG_TASK_START_STK_SIZE                    256u
-#define  APP_CFG_TASK_START_PRIO                        2u
+#define  APP_CFG_TASK_START_PRIO                        5u
 
 #define  APP_RX_TASK_STK_SIZE                    256u
-#define  APP_RX_TASK_PRIO                        3u
+#define  APP_RX_TASK_PRIO                        4u
 
+#define  APP_UART_TASK_STK_SIZE                  256u
+#define  APP_UART_TASK_PRIO                      3u
+
+#define  APP_ALARM_TASK_STK_SIZE                  256u
+#define  APP_ALARM_TASK_PRIO                      6u
+
+#define  APP_RSSI_TASK_STK_SIZE                    256u
+#define  APP_RSSI_TASK_PRIO                        15u
 
 static  OS_TCB   app_task_start_tcb;
 static  CPU_STK  app_task_start_stk[APP_CFG_TASK_START_STK_SIZE];
 
 static  OS_TCB   app_rx_task_tcb;
 static  CPU_STK  app_rx_task_stk[APP_RX_TASK_STK_SIZE];
+
+static  OS_TCB   app_uart_task_tcb;
+static  CPU_STK  app_uart_task_stk[APP_UART_TASK_STK_SIZE];
+
+static  OS_TCB   app_alarm_task_tcb;
+static  CPU_STK  app_alarm_task_stk[APP_ALARM_TASK_STK_SIZE];
+
+static  OS_TCB   app_rssi_task_tcb;
+static  CPU_STK  app_rssi_task_stk[APP_RSSI_TASK_STK_SIZE];
 
 /*----------------------------------------------------------------------------*/
 //local function
@@ -40,6 +57,61 @@ STATIC void app_wol_io_rx_task(void *p_arg)
 	while (DEF_TRUE) 
     {   
 		OSTimeDlyHMSM(0, 0, 1, 0, OS_OPT_TIME_HMSM_STRICT, &err);
+    }
+}
+
+STATIC void app_wol_io_uart_task(void *p_arg)
+{
+	OS_ERR      err;
+	u8 data=0;
+
+	(void)p_arg;
+	
+	//MSG("Creating Application Tasks: app_wol_io_uart_task\r\n");
+
+	Fifo_Init(&stFiFo);
+
+	while (DEF_TRUE) 
+    {   
+		//MSG("-----------uart-----------@%d\r\n",OSTimeGet(&err));
+        #if 1
+		if(1 == uart_drv_data_recv(&data,1))
+		{
+			Fifo_Write(&stFiFo,data);
+		//MSG("%c,",data);
+		}
+		//MSG("\r\n");
+		#endif
+		OSTimeDlyHMSM(0, 0, 0, 3, OS_OPT_TIME_HMSM_STRICT, &err);
+    }
+}
+
+STATIC void app_wol_io_alarm_task(void *p_arg)
+{
+	OS_ERR      err;
+
+	(void)p_arg;
+	
+	while (DEF_TRUE) 
+    {   
+		//MSG("-----------uart-----------@%d\r\n",OSTimeGet(&err));
+		//¾¯µÆ¿ØÖÆ
+		//alarm_control();
+		
+		OSTimeDlyHMSM(0, 0, 0, 200, OS_OPT_TIME_HMSM_STRICT, &err);
+    }
+}
+
+STATIC void app_wol_io_rssi_task(void *p_arg)
+{
+	OS_ERR      err;
+	(void)p_arg;
+	
+	 while (DEF_TRUE) 
+    {       
+    	//get_rssi();
+		//MSG("rssi\r\n");
+        OSTimeDlyHMSM(0, 0, 1, 0, OS_OPT_TIME_HMSM_STRICT, &err);
     }
 }
 
@@ -62,6 +134,45 @@ STATIC void app_task_create(void)
                  (OS_OPT        )(OS_OPT_TASK_STK_CHK | OS_OPT_TASK_STK_CLR),
                  (OS_ERR       *)&err);
 #endif
+	OSTaskCreate((OS_TCB	   *)&app_uart_task_tcb,			  
+				 (CPU_CHAR	   *)"App wol io uart Task",
+				 (OS_TASK_PTR	)app_wol_io_uart_task, 
+				 (void		   *)0,
+				 (OS_PRIO		)APP_UART_TASK_PRIO,
+				 (CPU_STK	   *)&app_uart_task_stk[0],
+				 (CPU_STK_SIZE	)app_uart_task_stk[APP_UART_TASK_STK_SIZE / 10],
+				 (CPU_STK_SIZE	)APP_UART_TASK_STK_SIZE,
+				 (OS_MSG_QTY	)0,
+				 (OS_TICK		)0,
+				 (void		   *)0,
+				 (OS_OPT		)(OS_OPT_TASK_STK_CHK | OS_OPT_TASK_STK_CLR),
+				 (OS_ERR	   *)&err);
+	OSTaskCreate((OS_TCB       *)&app_alarm_task_tcb,              
+	             (CPU_CHAR     *)"App wol io alarm Task",
+	             (OS_TASK_PTR   )app_wol_io_alarm_task, 
+	             (void         *)0,
+	             (OS_PRIO       )APP_ALARM_TASK_PRIO,
+	             (CPU_STK      *)&app_alarm_task_stk[0],
+	             (CPU_STK_SIZE  )app_alarm_task_stk[APP_ALARM_TASK_STK_SIZE / 10],
+	             (CPU_STK_SIZE  )APP_ALARM_TASK_STK_SIZE,
+	             (OS_MSG_QTY    )0,
+	             (OS_TICK       )0,
+	             (void         *)0,
+	             (OS_OPT        )(OS_OPT_TASK_STK_CHK | OS_OPT_TASK_STK_CLR),
+	             (OS_ERR       *)&err);
+	OSTaskCreate((OS_TCB	   *)&app_rssi_task_tcb, 			 
+				 (CPU_CHAR	   *)"App wol io rssi detect Task",
+				 (OS_TASK_PTR	)app_wol_io_rssi_task, 
+				 (void		   *)0,
+				 (OS_PRIO		)APP_RSSI_TASK_PRIO,
+				 (CPU_STK	   *)&app_rssi_task_stk[0],
+				 (CPU_STK_SIZE	)app_rssi_task_stk[APP_RSSI_TASK_STK_SIZE / 10],
+				 (CPU_STK_SIZE	)APP_RSSI_TASK_STK_SIZE,
+				 (OS_MSG_QTY	)0,
+				 (OS_TICK		)0,
+				 (void		   *)0,
+				 (OS_OPT		)(OS_OPT_TASK_STK_CHK | OS_OPT_TASK_STK_CLR),
+				 (OS_ERR	   *)&err);
 
 }
 
@@ -107,9 +218,9 @@ STATIC void app_task_start(void *p_arg)
     {   
         //tc_run_all();
         //MSG("----------------loop-----------------\r\n");
-        LED_G_ON;
+        //LED_G_ON;
 		OSTimeDlyHMSM(0, 0, 0, 200, OS_OPT_TIME_HMSM_STRICT, &err);
-		LED_G_OFF;
+		//LED_G_OFF;
 		OSTimeDlyHMSM(0, 0, 0, 200, OS_OPT_TIME_HMSM_STRICT, &err);
     }
 }

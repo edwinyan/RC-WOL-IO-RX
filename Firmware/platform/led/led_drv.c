@@ -10,28 +10,18 @@ typedef struct{
 }led_config_t;
 
 
-#if (TX == 1)
-STATIC led_config_t led_out_array[3] = {
-    {GPIOC, GPIO_Pin_8},	//power led ctrl 2
-    {GPIOC, GPIO_Pin_9},	//power led ctrl 1
-    {GPIOB, GPIO_Pin_9},    //return led
-};
-
-STATIC led_config_t led_config_array[LED_SRC_NUM] = {    
-    {GPIOB, GPIO_Pin_14},
-    {GPIOB, GPIO_Pin_13},
-    {GPIOB, GPIO_Pin_12}, 
-    {GPIOC, GPIO_Pin_5},
-};
-#else
 STATIC led_config_t led_config_array[LED_SRC_NUM] = {
     //{GPIOC, GPIO_Pin_6},
-    {GPIOB, GPIO_Pin_14},
-    {GPIOB, GPIO_Pin_13},
-    {GPIOB, GPIO_Pin_12},    
+    {LED_5V_GPIO, LED_5V_PIN},
+    {LED_12V_GPIO, LED_12V_PIN},
+    {LED_17V_GPIO, LED_17V_PIN},
+    {LED_22V_GPIO, LED_22V_PIN}, 
+    {LED_48V_GPIO, LED_48V_PIN}, 
+    {LED_ALARM1_GPIO, LED_ALARM1_PIN}, 
+    {LED_ALARM2_GPIO, LED_ALARM2_PIN}, 
 };
 
-#endif
+
 /*----------------------------------------------------------------------------*/
 //global functions
 void led_drv_init(void)
@@ -50,10 +40,6 @@ void led_drv_init(void)
         GPIO_Init(led_config_array[src].port, &gpio_init);
     }
 
-    LED_R_OFF;
-    LED_G_OFF;
-    LED_B_OFF;
-
 }
 
 void led_on(led_src_enum src)
@@ -66,5 +52,17 @@ void led_off(led_src_enum src)
 {
     ASSERT_D(src < LED_SRC_NUM);
     GPIO_ResetBits(led_config_array[src].port, led_config_array[src].pin);
+}
+
+void led_toggle(led_src_enum src)
+{
+	ASSERT_D(src < LED_SRC_NUM);
+
+	if(GPIO_ReadInputDataBit(led_config_array[src].port, led_config_array[src].pin))
+	{
+		GPIO_ResetBits(led_config_array[src].port, led_config_array[src].pin);
+	}else{
+		GPIO_SetBits(led_config_array[src].port, led_config_array[src].pin);
+	}
 }
 

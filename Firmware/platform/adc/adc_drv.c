@@ -6,7 +6,6 @@
 
 #include "uart_drv.h"
 
-
 __IO u16 Adc_Value[64][ADC_NUM_CHANNELS];
 u32 test_flag=0;
 u16 adc_avg[ADC_NUM_CHANNELS];
@@ -85,10 +84,10 @@ void  Adc_Init(void)
 	
 	//RCC_APB2PeriphClockCmd(RCC_APB2Periph_ADC1, ENABLE);
 
-	GPIO_InitStructure.GPIO_Pin = ADC1_IN0_PIN | ADC1_IN6_PIN | ADC1_IN7_PIN;
+	GPIO_InitStructure.GPIO_Pin = ADC1_IN10_PIN | ADC1_IN11_PIN | ADC1_IN12_PIN;
 	GPIO_InitStructure.GPIO_Mode = GPIO_Mode_AN;
 	GPIO_InitStructure.GPIO_PuPd = GPIO_PuPd_NOPULL;
-	GPIO_Init(GPIOA, &GPIO_InitStructure);
+	GPIO_Init(GPIOC, &GPIO_InitStructure);
 
 	GPIO_InitStructure.GPIO_Pin = ADC1_IN8_PIN | ADC1_IN9_PIN;
 	GPIO_InitStructure.GPIO_Mode = GPIO_Mode_AN;
@@ -119,13 +118,11 @@ void  Adc_Init(void)
 	BSP_IntVectSet(BSP_INT_ID_DMA2_CH0,DMA2_Stream0_IRQHandler);
 	BSP_IntEn(BSP_INT_ID_DMA2_CH0);
 
-	ADC_RegularChannelConfig(ADC1, ADC_Channel_0, 1, ADC_SampleTime_56Cycles );    
-    ADC_RegularChannelConfig(ADC1, ADC_Channel_6, 2, ADC_SampleTime_56Cycles );
-    ADC_RegularChannelConfig(ADC1, ADC_Channel_7, 3, ADC_SampleTime_56Cycles );
-    ADC_RegularChannelConfig(ADC1, ADC_Channel_8, 4, ADC_SampleTime_56Cycles );
-    ADC_RegularChannelConfig(ADC1, ADC_Channel_9, 5, ADC_SampleTime_56Cycles );
-
-	
+	ADC_RegularChannelConfig(ADC1, ADC_Channel_8, 1, ADC_SampleTime_56Cycles );    
+    ADC_RegularChannelConfig(ADC1, ADC_Channel_9, 2, ADC_SampleTime_56Cycles );
+    ADC_RegularChannelConfig(ADC1, ADC_Channel_10, 3, ADC_SampleTime_56Cycles );
+    ADC_RegularChannelConfig(ADC1, ADC_Channel_11, 4, ADC_SampleTime_56Cycles );
+    ADC_RegularChannelConfig(ADC1, ADC_Channel_12, 5, ADC_SampleTime_56Cycles );
 	
     ADC_DMARequestAfterLastTransferCmd(ADC1,ENABLE); 
     ADC_DMACmd(ADC1, ENABLE); 
