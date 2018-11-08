@@ -40,6 +40,7 @@ void led_on(led_src_enum src);
 void led_off(led_src_enum src);
 void led_toggle(led_src_enum src);
 void power_detect(void);
+void alarm_control(void);
 
 
 #define LED_5V_ON      	led_on(LED_SRC_5V)

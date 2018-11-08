@@ -4,6 +4,9 @@
 #include "led_drv.h"
 //#include "tc_common.h"
 #include "uart_drv.h"
+#include "datalink_drv.h"
+#include "pwm_drv.h"
+#include "wt588d_drv.h"
 
 OS_MUTEX	TX_MUTEX;		//uart tx mutex
 OS_MUTEX	RX_MUTEX;		//uart rx mutex
@@ -12,6 +15,10 @@ OS_MUTEX	FIFO_MUTEX;
 
 FIFO_T stFiFo;
 
+extern u32 DutyCycle;
+extern u32 pwmFlag;
+extern u32 alarm_stamp;
+extern u8 button;
 /*----------------------------------------------------------------------------*/
 //macro and variables
 #define  APP_CFG_TASK_START_STK_SIZE                    256u
@@ -56,7 +63,15 @@ STATIC void app_wol_io_rx_task(void *p_arg)
 
 	while (DEF_TRUE) 
     {   
-		OSTimeDlyHMSM(0, 0, 1, 0, OS_OPT_TIME_HMSM_STRICT, &err);
+    	if( datalink_received())
+	  	{
+			if(datalink_unpack() ==0)
+			{
+				MSG("packet data error detected\r\n");
+			}
+			//receive_done =FALSE;
+		}
+		OSTimeDlyHMSM(0, 0, 0, 30, OS_OPT_TIME_HMSM_STRICT, &err);
     }
 }
 
@@ -96,7 +111,7 @@ STATIC void app_wol_io_alarm_task(void *p_arg)
     {   
 		//MSG("-----------uart-----------@%d\r\n",OSTimeGet(&err));
 		//警灯控制
-		//alarm_control();
+		alarm_control();
 		
 		OSTimeDlyHMSM(0, 0, 0, 200, OS_OPT_TIME_HMSM_STRICT, &err);
     }
@@ -109,7 +124,7 @@ STATIC void app_wol_io_rssi_task(void *p_arg)
 	
 	 while (DEF_TRUE) 
     {       
-    	//get_rssi();
+    	get_rssi();
 		//MSG("rssi\r\n");
         OSTimeDlyHMSM(0, 0, 1, 0, OS_OPT_TIME_HMSM_STRICT, &err);
     }
@@ -217,11 +232,35 @@ STATIC void app_task_start(void *p_arg)
     while (DEF_TRUE) 
     {   
         //tc_run_all();
+        #if 0
+			if(pwmFlag==1){
+				//MSG("duty=%d\r\n",DutyCycle);
+				//MSG("Frequency=%d\r\n",Frequency);
+				pwmFlag=0;
+			}else{
+				DutyCycle =0;			
+			}
+			//MSG("duty=%d\r\n",DutyCycle);
+		#endif
+		//舵机控制信号输出
+		pwm_output();
+		//语音模块输出
+		wt588d_handler(button);
+		//电压监测
+		power_detect();
+		//发送数据给GCS
+		gcs_data_send();
+
+		//设置系统100ms的递减
+		if(alarm_stamp > 0)
+		{
+			alarm_stamp --;
+		}
         //MSG("----------------loop-----------------\r\n");
         //LED_G_ON;
-		OSTimeDlyHMSM(0, 0, 0, 200, OS_OPT_TIME_HMSM_STRICT, &err);
+		OSTimeDlyHMSM(0, 0, 0, 100, OS_OPT_TIME_HMSM_STRICT, &err);
 		//LED_G_OFF;
-		OSTimeDlyHMSM(0, 0, 0, 200, OS_OPT_TIME_HMSM_STRICT, &err);
+		//OSTimeDlyHMSM(0, 0, 0, 200, OS_OPT_TIME_HMSM_STRICT, &err);
     }
 }
 
